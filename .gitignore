@@ -1,0 +1,10 @@
+.DS_Store
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+db/
+tmp*.*
+tmp/
+log/
+

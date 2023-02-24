@@ -1,0 +1,20 @@
+version: '3.5'
+
+services:
+
+  daemon_flask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: daemon_flask
+    image: cbb23021/daemon_flask:1.0
+    volumes:
+      - ./src:/app:rw
+      - ~/daemon/daemon_static/log/daemon:/app/log:rw
+    env_file: env/dev.env
+    networks:
+      - daemon-network
+
+networks:
+  daemon-network:
+    name: local
