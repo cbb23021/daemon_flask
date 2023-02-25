@@ -6,15 +6,17 @@ LABEL maintainer="Michael Chou<snoopy02m@gmail.com>"
 ARG PRODUCT_NAME="app"
 ENV ENV="/root/.bashrc"
 RUN mkdir -p /${PRODUCT_NAME}
+RUN mkdir -p /etc/supervisor.d/
 WORKDIR /${PRODUCT_NAME}
 COPY requirements.txt .
 COPY src .
 
-# Install requirement
-RUN pip --no-cache-dir install -r requirements.txt
+RUN apt update
+RUN apt install -y gcc
 
-# Startup service
-CMD ["supervisord", "-n"]
+# Install requirement
+RUN pip install --upgrade pip
+RUN pip --no-cache-dir install -r requirements.txt
 
 # Ailas
 RUN echo 'alias start="python3 start_daemon.py"' >> /root/.bashrc

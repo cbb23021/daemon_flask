@@ -3,6 +3,8 @@ version: '3.5'
 services:
 
   daemon_flask:
+    stdin_open: true
+    tty: true
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,7 +13,7 @@ services:
     volumes:
       - ./src:/app:rw
       - ~/daemon/daemon_static/log/daemon:/app/log:rw
-    env_file: env/dev.env
+    env_file: dev.env
     networks:
       - daemon-network
 

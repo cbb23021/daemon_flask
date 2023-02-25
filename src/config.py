@@ -6,15 +6,12 @@ class Config:
     APP_NAME = os.environ['APP_NAME']
     SYSTEM_NAME = os.environ['SYSTEM_NAME']
     ENVIRONMENT = os.environ['ENVIRONMENT']
-    MODELS_PATH_LIST = ['common.orm.fantasyee_models']
 
     # --- Salt --- #
     SALT = os.environ['SALT']
     SECRET_KEY = os.environ.get('SECRET_KEY', None)
 
     # --- Host --- #
-    FRONTEND_HOST = os.environ['FRONTEND_HOST']
-    STATIC_HOST = os.environ['STATIC_HOST']
 
     # --- Database --- #
     DB_NAME = os.environ['DB_NAME']
@@ -25,7 +22,8 @@ class Config:
     DB_PORT = os.environ['MYSQL_PORT']
 
     SQLALCHEMY_BINDS = {
-        DB_NAME: f'mysql+pymysql://{DB_USER}:{DB_PWD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
+        DB_NAME:
+        f'mysql+pymysql://{DB_USER}:{DB_PWD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
     }
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
