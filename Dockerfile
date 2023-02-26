@@ -1,5 +1,5 @@
 # Container/Image name
-FROM brunneis/python:3.7.0-ubuntu-18.04
+FROM cbb23021/python3.7:1.0
 LABEL maintainer="Michael Chou<snoopy02m@gmail.com>"
 
 # Prepare packages
@@ -11,11 +11,6 @@ WORKDIR /${PRODUCT_NAME}
 COPY requirements.txt .
 COPY src .
 
-RUN apt update
-RUN apt install -y gcc
-
-# Install requirement
-RUN pip install --upgrade pip
 RUN pip --no-cache-dir install -r requirements.txt
 
 # Ailas
