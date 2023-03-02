@@ -1,8 +1,7 @@
-from core.join_contest_handler import JoinContestHandler
+from core.join_handler import JoinHandler
+from common.utils.debugtool import DebugTool
 
-# from general.debugtool import DebugTool
-
-# DebugTool.start_logging(__file__)
+DebugTool.start_logging(__file__)
 
 if __name__ == '__main__':
-    JoinContestHandler.exec()
+    JoinHandler.exec()

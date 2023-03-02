@@ -4,17 +4,17 @@ import time
 from datetime import datetime
 
 from colorama import Fore
-from common.const import Const
-from common.data_cach import DataCache
-from common.models import Contest
-from common.utils.debugtool import DebugTool
-from common.utils.orm_tool import ORMTool
 from sqlalchemy import exc
 
+from common.const import Const
+from common.models import LottoDraw
+from common.utils.data_cache import DataCache
+from common.utils.debugtool import DebugTool
+from common.utils.orm_tool import ORMTool
 from core.queue_handler import QueueHandler
 
 
-class JoinContestHandler:
+class JoinHandler:
 
     @staticmethod
     def _show(msg, color=None, tag=None):
@@ -25,47 +25,45 @@ class JoinContestHandler:
         )
 
     @classmethod
-    def contest_id_monitor(cls):
-        # 監聽 active_contest_ids
-        active_contest = DataCache.get_active_contest_id()
-        if active_contest:
+    def id_monitor(cls):
+        # 監聽 active_draw_ids
+        active_draw = DataCache.get_active_draw_id()
+        if active_draw:
             ORMTool.commit()
-            active_contest_id = active_contest[1]
-            contest = Contest.query.filter(
-                Contest.id == active_contest_id,
-                Contest.status == Const.ContestStatus.ACTIVATED,
+            active_draw_id = active_draw[1]
+            draw = LottoDraw.query.filter(
+                LottoDraw.id == active_draw_id,
+                LottoDraw.status == Const.DrawStatus.ACTIVATED,
             ).first()
-            if not contest:
+            if not draw:
                 DebugTool.warning(
-                    msg=f'contest id {active_contest_id} not found or not activated'
-                )
-                DataCache.push_active_contest_ids(
-                    contest_ids=[active_contest_id])
+                    msg=f'<draw:{active_draw_id}> not found or not activated')
+                DataCache.push_active_draw_ids(draw_ids=[active_draw_id])
             else:
                 cls._show(tag='log',
                           color=Fore.CYAN,
-                          msg=f'>>>>> Active <contest:{active_contest_id}>')
+                          msg=f'>>>>> Active <draw:{active_draw_id}>')
                 # 建立空注單
-                QueueHandler.create_empty_orders(contest=contest)
+                QueueHandler.create_empty_orders(draw=draw)
 
-                # 監聽 <contest_id>-USED, 接收注單更新至 order 及 member_fee_transaction
+                # 監聽 <draw_id>-USED, 接收注單更新至 order 及 member_fee_transaction
                 threading.Thread(
                     target=QueueHandler.used_monitor,
-                    name=f'<contest_id:{contest.id}>',
-                    args=(contest.id, contest.open_datetime),
+                    name=f'<draw:{draw.id}>',
+                    args=(draw.id, draw.open_dt),
                     daemon=True,  # 主程式死掉後 同時刪除子程式的監聽
                 ).start()
             time.sleep(1)
 
     @classmethod
-    def new_contest_id_monitor(cls):
-        time.sleep(1)  # Need run before new contest
+    def new_id_monitor(cls):
+        time.sleep(1)  # Need run before new draw
         cls._show(tag='log',
                   color=Fore.GREEN,
-                  msg=f'--- start listening new contests ---')
+                  msg='--- start listening new draws ---')
         while True:
             try:
-                cls.contest_id_monitor()
+                cls.id_monitor()
             except exc.InterfaceError as e:
                 cls._show(
                     tag='error',
@@ -76,24 +74,24 @@ class JoinContestHandler:
                 DebugTool.error(e)
 
     @classmethod
-    def old_contest_id_monitor(cls):
-        """ 監聽舊 contest orders (<contest_id>-USED) """
-        old_contests = Contest.query.filter(
-            Contest.status == Const.ContestStatus.ACTIVATED,
-            Contest.settle_datetime.is_(None),
+    def old_id_monitor(cls):
+        """ 監聽舊 orders (<draw_id>-USED) """
+        old_draws = LottoDraw.query.filter(
+            LottoDraw.status == Const.DrawStatus.ACTIVATED,
+            LottoDraw.settle_dt.is_(None),
         ).all()
 
-        contest_ids = [_.id for _ in old_contests]
+        draw_ids = [_.id for _ in old_draws]
         cls._show(tag='log',
                   color=Fore.GREEN,
-                  msg=f'--- start listening old contests: {contest_ids} ---')
+                  msg=f'--- start listening old draws: {draw_ids} ---')
 
         threads = list()
-        for contest in old_contests:
+        for draw in old_draws:
             thread = threading.Thread(
                 target=QueueHandler.used_monitor,
-                name=f'<contest_id:{contest.id}>',
-                args=(contest.id, contest.open_datetime),
+                name=f'<draw_id:{draw.id}>',
+                args=(draw.id, draw.open_dt),
                 daemon=True,  # 主程式死掉後 同時刪除子程式的監聽
             )
             thread.start()
@@ -113,12 +111,12 @@ class JoinContestHandler:
     @classmethod
     def exec(cls):
         """
-        分別同時進行 新舊 contests 監聽
+        分別同時進行 新舊 draw 監聽
         """
         job_dict = dict()
         jobs = [
-            cls.old_contest_id_monitor,
-            cls.new_contest_id_monitor,
+            cls.old_id_monitor,
+            cls.new_id_monitor,
             cls._db_alive,
         ]
         while True:
@@ -129,12 +127,12 @@ class JoinContestHandler:
                 process.start()
                 job_dict.update({job.__name__: process})
 
-            # 如果 new contest job 出錯 即重啟
-            new_contest_job = job_dict[cls.new_contest_id_monitor.__name__]
-            if not new_contest_job.is_alive():
+            # 如果 new draw job 出錯 即重啟
+            new_job = job_dict[cls.new_id_monitor.__name__]
+            if not new_job.is_alive():
                 cls._show(tag='log',
                           color=Fore.LIGHTRED_EX,
-                          msg=f'--- restart <jobs> after 2 sec ---')
+                          msg='--- restart <jobs> after 2 sec ---')
                 for job_name, process in job_dict.copy().items():
                     del job_dict[job_name]
                     process.terminate()
