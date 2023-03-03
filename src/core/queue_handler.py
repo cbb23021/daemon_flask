@@ -1,11 +1,12 @@
+import json
 from datetime import datetime, timedelta
 
 from colorama import Fore
 
 from app import db
 from common.const import Const
-from common.data_cache import DataCache
-from common.models import Order
+from common.models import LottoOrder
+from common.utils.data_cache import DataCache
 from common.utils.debugtool import DebugTool
 from common.utils.order_tool import OrderTool
 from common.utils.orm_tool import ORMTool
@@ -82,12 +83,22 @@ class QueueHandler:
 
             order_data = DataCache.get_used_order_data(draw_id=draw_id)
             if order_data:
-                order_id, member_id, cash, ticket, number, join_dt, remark = order_data[
+                order_id, member_id, cash, ticket, a, b, c, d, e, f, g, join_dt, remark = order_data[
                     1].split(':')
-                order_id, member_id, cash, ticket, number, join_dt, remark = int(
-                    order_id), int(member_id), int(cash), int(
-                        ticket), json.load(number), datetime.strptime(
-                            join_dt, "%Y-%m-%dT%H-%M-%S"), str(remark)
+                order_id = int(order_id)
+                member_id = int(member_id)
+                cash = int(cash)
+                ticket = int(ticket)
+                a = int(a)
+                b = int(b)
+                c = int(c)
+                d = int(d)
+                e = int(e)
+                f = int(f)
+                g = int(g)
+                join_dt = datetime.strptime(join_dt, "%Y-%m-%dT%H-%M-%S")
+                remark = str(remark)
+
                 cls._show(
                     tag='order',
                     msg=f'Get    '
@@ -100,7 +111,9 @@ class QueueHandler:
                     order_obj = LottoOrder.query.filter(
                         LottoOrder.id == order_id).with_for_update().first()
                     order_obj.member_id = member_id
-                    order_obj.number = number
+                    order_obj.number = {
+                        'numbers': json.dumps([a, b, c, d, e, f, g])
+                    }
 
                     # create member_fee_transaction
                     record = TransactionTool.get_member_trans(
@@ -127,7 +140,13 @@ class QueueHandler:
                         member_id=member_id,
                         cash=cash,
                         ticket=ticket,
-                        number=json.dumps(numbers),
+                        a=a,
+                        b=b,
+                        c=c,
+                        d=d,
+                        e=e,
+                        f=f,
+                        g=g,
                         join_dt=join_dt,
                         remark=remark,
                     )
